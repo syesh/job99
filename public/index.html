@@ -1,21 +1,106 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Dream99</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Job99 - Select, rank, and track your top 20 dream companies to work for.">
+  <title>Job99 - Your Top 20 Dream Companies</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Dream99</h1>
+  <div class="app-layout">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-content">
+        <div class="brand">
+          <div class="brand-icon">✨</div>
+          <div>
+            <h1>Job99</h1>
+            <p class="subtitle">Rank and curate your top 20 dream career destinations</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="copyBtn" class="btn btn-secondary" title="Copy your dream company list to clipboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span>Share List</span>
+          </button>
+          <button id="clearBtn" class="btn btn-ghost" title="Clear your selected list">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+            <span>Reset</span>
+          </button>
+        </div>
+      </div>
+    </header>
 
-  <div id="container">
-    <h2>Your top 20 Companies</h2>
-    <div id="selected"></div>
-    <button id="addBtn">+</button>
-  </div>
+    <!-- Main Selected Section -->
+    <main>
+      <section id="container" class="card main-card">
+        <div class="card-header">
+          <div class="title-with-badge">
+            <h2>Your Top 20 Companies</h2>
+            <span id="counterBadge" class="badge">0 / 20</span>
+          </div>
+          <button id="addBtn" class="btn btn-primary" aria-label="Toggle company catalog">
+            <span id="addBtnIcon">+</span>
+            <span id="addBtnText">Browse Catalog</span>
+          </button>
+        </div>
 
-  <div id="menu" class="hidden">
-    <input type="text" id="search" placeholder="Search companies...">
-    <div id="companyList"></div>
+        <div class="progress-track" aria-hidden="true">
+          <div id="progressBar" class="progress-fill" style="width: 0%;"></div>
+        </div>
+
+        <p class="instructions-hint">💡 Drag or use the arrows to reorder by your preference. Click the ✕ to remove.</p>
+
+        <!-- Selected list container -->
+        <div id="selected" class="selected-grid" role="list"></div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon">🎯</div>
+          <h3>No companies added yet</h3>
+          <p>Start building your dream tier list! Click <strong>"Browse Catalog"</strong> to pick from top tech companies or add your own custom organization.</p>
+          <button id="emptyStateBtn" class="btn btn-primary">Browse Companies</button>
+        </div>
+      </section>
+
+      <!-- Company Catalog Drawer / Menu -->
+      <section id="menu" class="card menu-card hidden">
+        <div class="menu-header">
+          <div>
+            <h3>Add Companies</h3>
+            <p class="catalog-caption">Search from popular companies or add a custom name</p>
+          </div>
+          <button id="closeMenuBtn" class="close-btn" aria-label="Close catalog">&times;</button>
+        </div>
+
+        <!-- Controls: Search & Custom Addition -->
+        <div class="menu-controls">
+          <div class="search-box">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="search" placeholder="Search companies (e.g. Google, Tesla, Spotify)..." autocomplete="off">
+            <button id="clearSearchBtn" class="clear-search-btn hidden" aria-label="Clear search">&times;</button>
+          </div>
+
+          <form id="customCompanyForm" class="custom-form">
+            <input type="text" id="newCompany" placeholder="Can't find it? Type custom name..." autocomplete="off">
+            <button type="submit" class="btn btn-secondary btn-sm">+ Add Custom</button>
+          </form>
+        </div>
+
+        <div class="catalog-meta">
+          <span id="catalogCount" class="catalog-count">Showing companies</span>
+          <span id="limitNotice" class="limit-notice hidden">Maximum 20 companies reached</span>
+        </div>
+
+        <!-- Catalog List -->
+        <div id="companyList" class="company-grid" role="list"></div>
+      </section>
+    </main>
+
+    <!-- Toast message -->
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </div>
 
   <script src="script.js"></script>

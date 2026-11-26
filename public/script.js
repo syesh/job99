@@ -1,19 +1,17 @@
-let companies = [];
-let selected = [];
-
-const addBtn = document.getElementById("addBtn");
-const menu = document.getElementById("menu");
-const searchInput = document.getElementById("search");
-const companyList = document.getElementById("companyList");
-const selectedDiv = document.getElementById("selected");
-
-fetch("/api/companies")
-  .then(res => res.json())
-  .then(data => {
-    companies = data;
-    renderMenu(companies);
-    renderSelected();
-  });
+// Default company catalog fallback (if API is unreachable or running offline/file://)
+const DEFAULT_COMPANIES = [
+  "Google", "Apple", "Microsoft", "Amazon", "Meta",
+  "Nvidia", "Netflix", "Tesla", "OpenAI", "Spotify",
+  "Uber", "Airbnb", "Adobe", "Salesforce", "Stripe",
+  "GitHub", "Intel", "AMD", "IBM", "Oracle",
+  "Palantir", "Databricks", "Figma", "Notion", "Canva",
+  "Cloudflare", "Atlassian", "Snowflake", "Reddit", "LinkedIn",
+  "PayPal", "Twitter", "Pinterest", "Snapchat", "Dropbox",
+  "Zoom", "Slack", "eBay", "TikTok", "Qualcomm",
+  "Cisco", "Samsung", "Sony", "Dell", "HP",
+  "Siemens", "Philips", "Panasonic", "Foxconn", "Alibaba",
+  "Baidu", "Tencent", "Huawei", "Xiaomi", "LG"
+];
 
 const logoMap = {
   "Google": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg",
@@ -65,100 +63,489 @@ const logoMap = {
   "Tencent": "https://upload.wikimedia.org/wikipedia/commons/0/09/Tencent_Logo.svg",
   "Huawei": "https://upload.wikimedia.org/wikipedia/commons/0/08/Huawei_Standard_logo.svg",
   "ZTE": "https://upload.wikimedia.org/wikipedia/commons/f/fd/ZTE_new_logo.svg",
-  "Vivo": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Vivo_logo_2019.svg"
-
+  "Vivo": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Vivo_logo_2019.svg",
+  "OpenAI": "https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg",
+  "Stripe": "https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg",
+  "GitHub": "https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg",
+  "Cloudflare": "https://upload.wikimedia.org/wikipedia/commons/9/94/Cloudflare_Logo.svg",
+  "Figma": "https://upload.wikimedia.org/wikipedia/commons/3/33/Figma-logo.svg",
+  "Notion": "https://upload.wikimedia.org/wikipedia/commons/4/45/Notion_app_logo.png"
 };
 
-function getLogo(name) {
-  return logoMap[name] || "https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg";
+const AVATAR_COLORS = [
+  "#6366f1", "#ec4899", "#8b5cf6", "#10b981",
+  "#f59e0b", "#3b82f6", "#14b8a6", "#f97316"
+];
+
+function getAvatarColor(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
+// DOM Elements
+const addBtn = document.getElementById("addBtn");
+const addBtnIcon = document.getElementById("addBtnIcon");
+const addBtnText = document.getElementById("addBtnText");
+const menu = document.getElementById("menu");
+const closeMenuBtn = document.getElementById("closeMenuBtn");
+const searchInput = document.getElementById("search");
+const clearSearchBtn = document.getElementById("clearSearchBtn");
+const companyList = document.getElementById("companyList");
+const selectedDiv = document.getElementById("selected");
+const counterBadge = document.getElementById("counterBadge");
+const progressBar = document.getElementById("progressBar");
+const emptyState = document.getElementById("emptyState");
+const emptyStateBtn = document.getElementById("emptyStateBtn");
+const catalogCount = document.getElementById("catalogCount");
+const limitNotice = document.getElementById("limitNotice");
+const customCompanyForm = document.getElementById("customCompanyForm");
+const newCompanyInput = document.getElementById("newCompany");
+const copyBtn = document.getElementById("copyBtn");
+const clearBtn = document.getElementById("clearBtn");
+const toast = document.getElementById("toast");
+
+// State
+let companies = [];
+let selected = [];
+let customCompanies = [];
+let draggedIndex = null;
+
+// Safe localStorage loading
+try {
+  selected = JSON.parse(localStorage.getItem("selectedCompanies") || "[]");
+  if (!Array.isArray(selected)) selected = [];
+} catch (e) {
+  selected = [];
+}
+
+try {
+  customCompanies = JSON.parse(localStorage.getItem("customCompanies") || "[]");
+  if (!Array.isArray(customCompanies)) customCompanies = [];
+} catch (e) {
+  customCompanies = [];
+}
+
+// Initialize and Fetch Companies
+function initCompanies() {
+  fetch("/api/companies")
+    .then(res => {
+      if (!res.ok) throw new Error("HTTP error " + res.status);
+      return res.json();
+    })
+    .then(data => {
+      mergeAndSetCompanies(data);
+    })
+    .catch(err => {
+      console.warn("Could not fetch /api/companies, using fallback list:", err);
+      mergeAndSetCompanies(DEFAULT_COMPANIES);
+    });
+}
+
+function mergeAndSetCompanies(apiList) {
+  const allSet = new Set([...apiList, ...DEFAULT_COMPANIES, ...customCompanies, ...selected]);
+  companies = Array.from(allSet);
+  renderMenu(companies);
+  renderSelected();
+}
+
+function getLogo(name) {
+  return logoMap[name] || null;
+}
+
+function createLogoElement(name) {
+  const logoUrl = getLogo(name);
+  if (logoUrl) {
+    const img = document.createElement("img");
+    img.src = logoUrl;
+    img.alt = name;
+    img.className = "company-logo";
+    img.loading = "lazy";
+    img.onerror = () => {
+      // Fallback to text avatar if image fails to load
+      const avatar = createAvatarFallback(name);
+      img.replaceWith(avatar);
+    };
+    return img;
+  }
+  return createAvatarFallback(name);
+}
+
+function createAvatarFallback(name) {
+  const avatar = document.createElement("div");
+  avatar.className = "avatar-fallback";
+  avatar.style.backgroundColor = getAvatarColor(name);
+  avatar.textContent = (name.trim()[0] || "?").toUpperCase();
+  return avatar;
+}
+
+// Toast helper
+let toastTimer = null;
+function showToast(message) {
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2600);
+}
+
+// Render Selected List
+function renderSelected() {
+  selectedDiv.innerHTML = "";
+  const count = selected.length;
+
+  // Counter & Progress
+  counterBadge.textContent = `${count} / 20`;
+  if (count >= 20) {
+    counterBadge.classList.add("full");
+    progressBar.classList.add("full");
+  } else {
+    counterBadge.classList.remove("full");
+    progressBar.classList.remove("full");
+  }
+  progressBar.style.width = `${Math.min(100, (count / 20) * 100)}%`;
+
+  // Empty state handling
+  if (count === 0) {
+    emptyState.classList.remove("hidden");
+    selectedDiv.classList.add("hidden");
+  } else {
+    emptyState.classList.add("hidden");
+    selectedDiv.classList.remove("hidden");
+  }
+
+  // Render items
+  selected.forEach((name, index) => {
+    const item = document.createElement("div");
+    item.className = "item";
+    item.setAttribute("role", "listitem");
+    item.setAttribute("draggable", "true");
+    item.dataset.index = index;
+
+    // Left container: Rank, Logo, Name
+    const left = document.createElement("div");
+    left.className = "item-left";
+
+    const rank = document.createElement("div");
+    rank.className = "rank-badge";
+    if (index === 0) rank.classList.add("rank-1");
+    else if (index === 1) rank.classList.add("rank-2");
+    else if (index === 2) rank.classList.add("rank-3");
+    rank.textContent = index + 1;
+    left.appendChild(rank);
+
+    left.appendChild(createLogoElement(name));
+
+    const span = document.createElement("span");
+    span.className = "company-name";
+    span.textContent = name;
+    span.title = name;
+    left.appendChild(span);
+
+    item.appendChild(left);
+
+    // Right container: Move Up/Down & Remove buttons
+    const actions = document.createElement("div");
+    actions.className = "item-actions";
+
+    // Move Up
+    const upBtn = document.createElement("button");
+    upBtn.className = "order-btn";
+    upBtn.title = "Move up";
+    upBtn.innerHTML = "▲";
+    upBtn.disabled = index === 0;
+    upBtn.onclick = (e) => {
+      e.stopPropagation();
+      moveCompany(index, index - 1);
+    };
+    actions.appendChild(upBtn);
+
+    // Move Down
+    const downBtn = document.createElement("button");
+    downBtn.className = "order-btn";
+    downBtn.title = "Move down";
+    downBtn.innerHTML = "▼";
+    downBtn.disabled = index === count - 1;
+    downBtn.onclick = (e) => {
+      e.stopPropagation();
+      moveCompany(index, index + 1);
+    };
+    actions.appendChild(downBtn);
+
+    // Remove button
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "remove-btn";
+    removeBtn.title = `Remove ${name}`;
+    removeBtn.innerHTML = "&times;";
+    removeBtn.onclick = (e) => {
+      e.stopPropagation();
+      removeCompany(name);
+    };
+    actions.appendChild(removeBtn);
+
+    item.appendChild(actions);
+
+    // Drag and Drop Event Handlers
+    item.addEventListener("dragstart", (e) => {
+      draggedIndex = index;
+      item.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", index);
+    });
+
+    item.addEventListener("dragend", () => {
+      item.classList.remove("dragging");
+      draggedIndex = null;
+    });
+
+    item.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+    });
+
+    item.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const targetIndex = index;
+      if (draggedIndex !== null && draggedIndex !== targetIndex) {
+        const movedItem = selected.splice(draggedIndex, 1)[0];
+        selected.splice(targetIndex, 0, movedItem);
+        saveSelected();
+        renderSelected();
+      }
+    });
+
+    selectedDiv.appendChild(item);
+  });
+
+  // Save changes to storage
+  saveSelected();
+
+  // Update limit indicators
+  if (limitNotice) {
+    if (selected.length >= 20) {
+      limitNotice.classList.remove("hidden");
+    } else {
+      limitNotice.classList.add("hidden");
+    }
+  }
+}
+
+function saveSelected() {
+  try {
+    localStorage.setItem("selectedCompanies", JSON.stringify(selected));
+  } catch (e) {
+    console.error("Failed to save to localStorage:", e);
+  }
+}
+
+function saveCustomCompanies() {
+  try {
+    localStorage.setItem("customCompanies", JSON.stringify(customCompanies));
+  } catch (e) {
+    console.error("Failed to save custom companies:", e);
+  }
+}
+
+// Move company up or down
+function moveCompany(fromIdx, toIdx) {
+  if (toIdx < 0 || toIdx >= selected.length) return;
+  const item = selected.splice(fromIdx, 1)[0];
+  selected.splice(toIdx, 0, item);
+  saveSelected();
+  renderSelected();
+}
+
+// Render Menu / Catalog
 function renderMenu(list) {
   companyList.innerHTML = "";
+  const isFull = selected.length >= 20;
+
   if (list.length === 0) {
-    const div = document.createElement("div");
-    div.textContent = "No companies found";
-    div.style.color = "gray";
-    companyList.appendChild(div);
+    const emptyMsg = document.createElement("div");
+    emptyMsg.className = "empty-catalog-msg";
+    emptyMsg.textContent = "No companies matching your search.";
+    companyList.appendChild(emptyMsg);
+    catalogCount.textContent = "0 companies found";
     return;
   }
+
+  catalogCount.textContent = `Showing ${list.length} companies`;
+
   list.forEach(name => {
     const card = document.createElement("div");
     card.className = "company-card";
-    const img = document.createElement("img");
-    img.src = getLogo(name);
-    img.alt = name + " logo";
-    img.style.width = "24px";
-    img.style.height = "24px";
-    img.style.marginRight = "8px";
-    card.appendChild(img);
+    card.setAttribute("role", "listitem");
+
+    card.appendChild(createLogoElement(name));
+
     const span = document.createElement("span");
     span.textContent = name;
     card.appendChild(span);
 
     if (selected.includes(name)) {
       card.classList.add("selected-card");
-      card.style.pointerEvents = "none";
+      card.title = `${name} is already in your top 20`;
+    } else if (isFull) {
+      card.classList.add("selected-card");
+      card.title = "Your list is full (max 20 reached)";
     } else {
       card.onclick = () => addCompany(name);
+      card.title = `Click to add ${name}`;
     }
+
     companyList.appendChild(card);
   });
 }
 
-// Load selected from localStorage if available
-selected = JSON.parse(localStorage.getItem("selectedCompanies") || "[]");
-
-function renderSelected() {
-  selectedDiv.innerHTML = "";
-  selected.forEach(name => {
-    const div = document.createElement("div");
-    div.className = "item";
-    const img = document.createElement("img");
-    img.src = getLogo(name);
-    img.alt = name + " logo";
-    img.style.width = "24px";
-    img.style.height = "24px";
-    img.style.marginRight = "8px";
-    div.appendChild(img);
-    const span = document.createElement("span");
-    span.textContent = name;
-    div.appendChild(span);
-
-    div.onclick = () => removeCompany(name);
-    selectedDiv.appendChild(div);
-  });
-  addBtn.disabled = selected.length >= 20;
-  // Save to localStorage
-  localStorage.setItem("selectedCompanies", JSON.stringify(selected));
-}
-
 function addCompany(name) {
-  if (selected.length >= 20 || selected.includes(name)) return;
-  selected.push(name);
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  if (selected.length >= 20) {
+    showToast("⚠️ Limit reached! Maximum 20 companies allowed.");
+    return;
+  }
+  if (selected.includes(trimmed)) {
+    showToast(`${trimmed} is already in your list!`);
+    return;
+  }
+
+  selected.push(trimmed);
   renderSelected();
   updateMenu();
+  showToast(`Added ${trimmed} to your Dream list! ✨`);
 }
 
 function removeCompany(name) {
   selected = selected.filter(n => n !== name);
   renderSelected();
   updateMenu();
+  showToast(`Removed ${name}`);
 }
 
 function updateMenu() {
-  const q = searchInput.value.toLowerCase();
+  const q = searchInput.value.trim().toLowerCase();
+  clearSearchBtn.classList.toggle("hidden", q.length === 0);
+
   const filtered = q
     ? companies.filter(c => c.toLowerCase().includes(q))
     : companies;
   renderMenu(filtered);
 }
 
-// events
-addBtn.onclick = () => {
-  menu.classList.toggle("hidden");
-  addBtn.textContent = menu.classList.contains("hidden") ? "+" : "-";
-  updateMenu();
-};
+// Toggle Catalog Menu
+function toggleMenu(forceOpen = null) {
+  const shouldOpen = forceOpen !== null ? forceOpen : menu.classList.contains("hidden");
+  if (shouldOpen) {
+    menu.classList.remove("hidden");
+    addBtnIcon.textContent = "✕";
+    addBtnText.textContent = "Close Catalog";
+    addBtn.classList.remove("btn-primary");
+    addBtn.classList.add("btn-secondary");
+    updateMenu();
+    searchInput.focus();
+  } else {
+    menu.classList.add("hidden");
+    addBtnIcon.textContent = "+";
+    addBtnText.textContent = "Browse Catalog";
+    addBtn.classList.remove("btn-secondary");
+    addBtn.classList.add("btn-primary");
+  }
+}
+
+// Event Listeners
+addBtn.onclick = () => toggleMenu();
+if (closeMenuBtn) closeMenuBtn.onclick = () => toggleMenu(false);
+if (emptyStateBtn) emptyStateBtn.onclick = () => toggleMenu(true);
 
 searchInput.oninput = updateMenu;
+
+if (clearSearchBtn) {
+  clearSearchBtn.onclick = () => {
+    searchInput.value = "";
+    updateMenu();
+    searchInput.focus();
+  };
+}
+
+// Custom company addition
+if (customCompanyForm) {
+  customCompanyForm.onsubmit = (e) => {
+    e.preventDefault();
+    const newName = newCompanyInput.value.trim();
+    if (!newName) return;
+
+    if (!companies.includes(newName)) {
+      companies.unshift(newName);
+      customCompanies.push(newName);
+      saveCustomCompanies();
+
+      fetch("/api/companies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName })
+      }).catch(() => {/* ignore if running statically or offline */});
+    }
+
+    addCompany(newName);
+    newCompanyInput.value = "";
+  };
+}
+
+// Share / Copy button
+if (copyBtn) {
+  copyBtn.onclick = () => {
+    if (selected.length === 0) {
+      showToast("Add some companies first before copying!");
+      return;
+    }
+    const formatted = [
+      "✨ Job99 - My Top Dream Companies to Work For:",
+      ...selected.map((c, i) => `${i + 1}. ${c}`)
+    ].join("\n");
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(formatted).then(() => {
+        showToast("Copied your Dream list to clipboard! 📋");
+      }).catch(() => {
+        fallbackCopy(formatted);
+      });
+    } else {
+      fallbackCopy(formatted);
+    }
+  };
+}
+
+function fallbackCopy(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand("copy");
+    showToast("Copied your Dream list to clipboard! 📋");
+  } catch (err) {
+    showToast("Could not copy automatically.");
+  }
+  document.body.removeChild(textarea);
+}
+
+// Clear / Reset list
+if (clearBtn) {
+  clearBtn.onclick = () => {
+    if (selected.length === 0) return;
+    if (confirm("Are you sure you want to reset your Dream list?")) {
+      selected = [];
+      saveSelected();
+      renderSelected();
+      updateMenu();
+      showToast("List reset.");
+    }
+  };
+}
+
+// Start
+initCompanies();

@@ -1,6 +1,7 @@
 {
-  "name": "nine",
+  "name": "job99",
   "version": "1.0.0",
+  "description": "Curate, rank, and track your top 20 dream career destinations.",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
