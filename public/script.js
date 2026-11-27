@@ -130,7 +130,12 @@ try {
 
 // Initialize and Fetch Companies
 function initCompanies() {
-  fetch("/api/companies")
+  // Try relative static companies.json first (works on GitHub Pages and local servers)
+  fetch("companies.json")
+    .then(res => {
+      if (!res.ok) return fetch("/api/companies");
+      return res;
+    })
     .then(res => {
       if (!res.ok) throw new Error("HTTP error " + res.status);
       return res.json();
@@ -139,7 +144,7 @@ function initCompanies() {
       mergeAndSetCompanies(data);
     })
     .catch(err => {
-      console.warn("Could not fetch /api/companies, using fallback list:", err);
+      console.warn("Using default company list:", err);
       mergeAndSetCompanies(DEFAULT_COMPANIES);
     });
 }
@@ -487,7 +492,7 @@ if (customCompanyForm) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName })
-      }).catch(() => {/* ignore if running statically or offline */});
+      }).catch(() => {/* ignore if running statically or offline */ });
     }
 
     addCompany(newName);

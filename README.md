@@ -58,6 +58,33 @@ Ensure you have [Node.js](https://nodejs.org/) installed on your machine.
 
 ---
 
+## 🌐 Deploy to GitHub Pages (No Vercel Needed)
+
+This site is 100% static-ready and works on GitHub Pages without any external server or Vercel configuration.
+
+### Option 1: Automatic via GitHub Actions (Recommended)
+1. Push your changes to GitHub:
+   ```bash
+   git add .
+   git commit -m "Configure GitHub Pages deployment"
+   git push origin main
+   ```
+2. In your GitHub repository:
+   - Go to **Settings** > **Pages** (under "Code and automation").
+   - Under **Build and deployment** > **Source**, select **GitHub Actions**.
+3. The included workflow (`.github/workflows/deploy.yml`) will automatically trigger, build, and deploy your site to:
+   ```
+   https://<your-username>.github.io/<repo-name>/
+   ```
+
+### Option 2: Deploy from Branch
+1. In your GitHub repository, go to **Settings** > **Pages**.
+2. Under **Build and deployment** > **Source**, choose **Deploy from a branch**.
+3. Under **Branch**, select `main` and folder `/ (root)`.
+4. Click **Save**. Your site will be live in a couple of minutes!
+
+---
+
 ## 📁 Project Structure
 
 ```text

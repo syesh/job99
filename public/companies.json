@@ -1,0 +1,22 @@
+[
+  "Google", "Apple", "Microsoft", "Amazon", "Meta",
+  "Nvidia", "Netflix", "Tesla", "OpenAI", "Spotify",
+  "Uber", "Airbnb", "Adobe", "Salesforce", "Stripe",
+  "GitHub", "Intel", "AMD", "IBM", "Oracle",
+  "Palantir", "Databricks", "Figma", "Notion", "Canva",
+  "Cloudflare", "Atlassian", "Snowflake", "Reddit", "LinkedIn",
+  "PayPal", "Twitter", "Pinterest", "Snapchat", "Dropbox",
+  "Zoom", "Slack", "eBay", "TikTok", "Qualcomm",
+  "Cisco", "Samsung", "Sony", "Dell", "HP",
+  "Siemens", "Philips", "Panasonic", "Foxconn", "Alibaba",
+  "Baidu", "Tencent", "Huawei", "ZTE", "Vivo",
+  "Xiaomi", "LG", "Motorola", "Asus", "Lenovo",
+  "Toshiba", "Anthropic", "SpaceX", "ByteDance", "Roblox",
+  "DoorDash", "Instacart", "Coinbase", "Robinhood", "Square",
+  "Shopify", "MongoDB", "Datadog", "Twilio", "ServiceNow",
+  "CrowdStrike", "Splunk", "Unity", "Epic Games", "Electronic Arts",
+  "Valve", "Riot Games", "Nintendo", "Blizzard", "Broadcom",
+  "ASML", "TSMC", "Applied Materials", "Texas Instruments", "Arm",
+  "Micron", "Western Digital", "Seagate", "Synopsys", "Cadence",
+  "VMware", "Box", "HubSpot", "Zendesk"
+]
