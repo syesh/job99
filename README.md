@@ -4,7 +4,7 @@ Job99 is a web application that helps students, job seekers, and engineers selec
 
 ## 🌐 Live Demo
 
-[Visit Job99 on GitHub Pages]((https://syesh.github.io/job99/))
+https://syesh.github.io/job99/
 
 ## Features
 
